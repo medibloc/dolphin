@@ -1,11 +1,11 @@
-export function setup(ctrMap, historyMap, profiles, doctors, token) {
+export function setup(ctrMap, historyMap, profiles, doctors, mediBlocToken) {
   return {
     type: 'SETUP',
     ctrMap,
     historyMap,
     profiles,
     doctors,
-    token
+    mediBlocToken
   }
 }
 

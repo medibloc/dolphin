@@ -1,17 +1,18 @@
-import {Map, fromJS} from 'immutable'
+import {fromJS} from 'immutable'
+import {setupContracts} from './contracts'
 
-export const INITIAL_STATE = fromJS({loggedIn: false})
+export const INITIAL_STATE = fromJS({loggedIn: false, contracts: {}, web3: {}})
 
 export default function reducer(state = INITIAL_STATE, action) {
   switch (action.type) {
     case 'SETUP':
-      return state.set('contracts', fromJS({
+      return setupContracts(state, {
         ctrMap: action.ctrMap,
         historyMap: action.historyMap,
         profiles: action.profiles,
         doctors: action.doctors,
-        token: action.token
-      }))
+        mediBlocToken: action.mediBlocToken
+      })
     case 'REQUEST_LOGIN':
       return state.set('loginRequested', true).set('email', action.email)
     case 'CHECK_LOGIN_STATUS':
