@@ -1,7 +1,8 @@
 import {fromJS} from 'immutable'
 import {setupContracts} from './contracts'
+import {getProfile} from './core'
 
-export const INITIAL_STATE = fromJS({loggedIn: false, contracts: {}, web3: {}})
+export const INITIAL_STATE = fromJS({loggedIn: false, contracts: {}, web3: {}, profile: {}})
 
 export default function reducer(state = INITIAL_STATE, action) {
   switch (action.type) {
@@ -15,21 +16,21 @@ export default function reducer(state = INITIAL_STATE, action) {
       })
     case 'REQUEST_LOGIN':
       return state.set('loginRequested', true).set('email', action.email)
-    case 'CHECK_LOGIN_STATUS':
-      if (state.get('loginRequested') !== true ||
-        action.verifiedEmails.indexOf(state.get('email')) === -1) {
-        return state
-      } else {
-        const email = state.get('email', '')
-        if (email === '' || action.accounts[email] === undefined) {
-          return state
-        }
-        return state.delete('loginRequested').merge(fromJS({
-          loggedIn: true,
-          account: action.accounts[email].account,
-          priKey: action.accounts[email].priKey
-        }))
-      }
+    case 'SET_ACCOUNT':
+      return state.delete('loginRequested').merge(fromJS({
+        loggedIn: true,
+        email: action.email,
+        account: action.account,
+        priKey: action.priKey
+      }))
+    case 'SET_PROFILE':
+      return state.merge(fromJS({
+        profile: action.profile,
+        balance: action.balance,
+        isDoctor: action.isDoctor
+      }))
+    case 'GET_PROFILE':
+      return getProfile(state, action.email, action.account, action.priKey)
     default:
       return state
   }

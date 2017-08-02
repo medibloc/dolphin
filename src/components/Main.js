@@ -29,9 +29,11 @@ export class Main extends React.PureComponent {
 
       let dicomArray = new Uint8Array(e.target.result)
 			let dataSet = parseDicom(dicomArray)
-			let width = dataSet.uint16('x00280011'), height = dataSet.uint16('x00280010')
+			let width = dataSet.uint16('x00280011')
+      let height = dataSet.uint16('x00280010')
 			let pixelDataElement = dataSet.elements.x7fe00010
-			let pixelData = new Uint8Array(dataSet.byteArray.buffer, pixelDataElement.dataOffset, pixelDataElement.length)
+			let pixelData = new Uint8Array(dataSet.byteArray.buffer,
+        pixelDataElement.dataOffset, pixelDataElement.length)
 			canvas.width = width
 			canvas.height = height
 			var context = canvas.getContext('2d')
@@ -155,7 +157,9 @@ export class Main extends React.PureComponent {
 
         let historyUpdateData = historyContract.update.getData(ipfsHash)
 
-        let controllerForwardData = controller.forward.getData(historyContract.address, 0x00, historyUpdateData)
+        let controllerForwardData = controller.forward.getData(historyContract.address,
+          0x00,
+          historyUpdateData)
         let keyBuffer = new Buffer(this.props.priKey, 'hex')
 
         let rawTx = {
@@ -257,31 +261,52 @@ export class Main extends React.PureComponent {
       return (
         <div className='container'>
           <div className='col-md-6 col-md-offset-3'>
-            <input type='text'
-              className='form-control'
-              placeholder="Patient's Email Address"
-              value={this.state.patientEmail}
-              onChange={event => this.setState({patientEmail: event.target.value})}
-            />
-            <input type='text'
-              className='form-control'
-              placeholder='Disease'
-              value={this.state.disease}
-              onChange={event => this.setState({disease: event.target.value})}
-            />
-            <textarea className='form-control'
-              placeholder="Prescription"
-              value={this.state.prescription}
-              onChange={event => this.setState({prescription: event.target.value})} />
-            <textarea className='form-control'
-              placeholder="Description"
-              value={this.state.description}
-              onChange={event => this.setState({description: event.target.value})} />
-            <input type='file'
-              className='form-control'
-              ref={(input) => {this.fileUpload = input}}
-              onChange={(e) => this.handleImageChange(e)} />
-            <canvas id='image' ref={(canvas) => {this.canvas = canvas}} />
+            <div className='form-group'>
+              <label>Patient's Email Address</label>
+              <input type='text'
+                id='patientEmail'
+                className='form-control'
+                placeholder="Patient's Email Address"
+                value={this.state.patientEmail}
+                onChange={event => this.setState({patientEmail: event.target.value})}
+              />
+            </div>
+            <div className='form-group'>
+              <label>Disease Name</label>
+              <input type='text'
+                id='diseaseName'
+                className='form-control'
+                placeholder='Disease'
+                value={this.state.disease}
+                onChange={event => this.setState({disease: event.target.value})}
+              />
+            </div>
+            <div className='form-group'>
+              <label>Prescription</label>
+              <textarea className='form-control'
+                id='prescription'
+                placeholder="Prescription"
+                value={this.state.prescription}
+                onChange={event => this.setState({prescription: event.target.value})} />
+            </div>
+            <div className='form-group'>
+              <label>Detailed Description</label>
+              <textarea className='form-control'
+                id='description'
+                placeholder="Description"
+                value={this.state.description}
+                onChange={event => this.setState({description: event.target.value})} />
+            </div>
+            <div className='form-group'>
+              <label>Appending Image (DICOM)</label>
+              <input type='file'
+                accept='.dcm'
+                id='dicomFile'
+                className='form-control'
+                ref={(input) => {this.fileUpload = input}}
+                onChange={(e) => this.handleImageChange(e)} />
+                <canvas id='image' ref={(canvas) => {this.canvas = canvas}} />
+            </div>
             <button className='btn btn-primary'
               disabled={!this.isFormFilled()}
               onClick={() => this.uploadHistory()}

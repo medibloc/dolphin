@@ -8,6 +8,12 @@ export class Login extends React.PureComponent {
     this.state = {email: ''}
   }
 
+  componentWillUpdate(nextProps) {
+    if (nextProps.loggedIn) {
+      this.props.history.push('/')
+    }
+  }
+
   render() {
     if (this.props.loggedIn) {
       return (
@@ -33,17 +39,20 @@ export class Login extends React.PureComponent {
       return (
         <div className='container'>
           <div className='col-md-6 col-md-offset-3'>
-            <input type="text"
-              value={this.state.email}
-              onChange={(event) => this.setState({email: event.target.value})}
-              onKeyPress={(event) => {
-                if (event.key === 'Enter' && !!this.state.textInput) {
-                  this.props.requestLogin(this.state.email)
-                }
-              }}
-              className='form-control'
-              placeholder='Your Email Address' />
-            <button className='btn btn-primary'
+            <h3 style={{marginBottom: '40px'}}>Login</h3>
+            <div className='form-group'>
+              <input type="text"
+                value={this.state.email}
+                onChange={(event) => this.setState({email: event.target.value})}
+                onKeyPress={(event) => {
+                  if (event.key === 'Enter' && !!this.state.textInput) {
+                    this.props.requestLogin(this.state.email)
+                  }
+                }}
+                className='form-control'
+                placeholder='Your Email Address' />
+            </div>
+            <button className='btn btn-primary pull-right'
               disabled={!this.state.email}
               onClick={() => this.props.requestLogin(this.state.email)}>
               Request Login

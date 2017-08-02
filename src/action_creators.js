@@ -19,10 +19,29 @@ export function requestLogin(email) {
   }
 }
 
-export function checkLoginStatus(state) {
+export function setAccount(email, account, priKey) {
   return {
-    type: 'CHECK_LOGIN_STATUS',
-    verifiedEmails: state.loginVerified,
-    accounts: state.accounts
+    type: 'SET_ACCOUNT',
+    email,
+    account,
+    priKey
+  }
+}
+
+export function setProfile(profile, balance, isDoctor) {
+  return {
+    type: 'SET_PROFILE',
+    profile,
+    balance,
+    isDoctor
+  }
+}
+
+export function getProfile(email, account, priKey) {
+  return {
+    type: 'GET_PROFILE',
+    email,
+    account,
+    priKey
   }
 }
