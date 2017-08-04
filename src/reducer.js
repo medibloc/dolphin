@@ -1,8 +1,17 @@
 import {fromJS} from 'immutable'
 import {setupContracts} from './contracts'
-import {getProfile} from './core'
+import {getProfile, getHistories, searchHistories} from './core'
 
-export const INITIAL_STATE = fromJS({loggedIn: false, contracts: {}, web3: {}, profile: {}})
+export const INITIAL_STATE = fromJS({
+  loggedIn: false,
+  contracts: {},
+  web3: {},
+  profile: {},
+  histories: [],
+  search: {
+    results: []
+  }
+})
 
 export default function reducer(state = INITIAL_STATE, action) {
   switch (action.type) {
@@ -16,6 +25,13 @@ export default function reducer(state = INITIAL_STATE, action) {
       })
     case 'REQUEST_LOGIN':
       return state.set('loginRequested', true).set('email', action.email)
+    case 'LOGOUT':
+      return state.merge(fromJS({
+        loggedIn: false,
+        account: '',
+        email: '',
+        priKey: ''
+      }))
     case 'SET_ACCOUNT':
       return state.delete('loginRequested').merge(fromJS({
         loggedIn: true,
@@ -31,6 +47,14 @@ export default function reducer(state = INITIAL_STATE, action) {
       }))
     case 'GET_PROFILE':
       return getProfile(state, action.email, action.account, action.priKey)
+    case 'SET_HISTORIES':
+      return state.set('histories', fromJS(action.histories))
+    case 'GET_HISTORIES':
+      return getHistories(state, action.email, action.account, action.priKey)
+    case 'SEARCH_HISTORIES':
+      return searchHistories(state, action.query)
+    case 'SET_SEARCH_RESULTS':
+      return state.setIn(['search', 'results'], fromJS(action.results))
     default:
       return state
   }

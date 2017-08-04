@@ -2,8 +2,7 @@ import React from 'react'
 import {connect} from 'react-redux'
 import {parseDicom} from 'dicom-parser'
 import * as actionCreators from '../action_creators'
-import {upload, uploadFile} from '../data-interface'
-const etx = require('ethereumjs-tx')
+import {uploadFile} from '../data-interface'
 
 export class Main extends React.PureComponent {
   constructor(props) {
@@ -58,23 +57,23 @@ export class Main extends React.PureComponent {
 
   uploadHistory() {
     this.setState({requested: true})
-    let data = {
+    let content = {
       disease: this.state.disease,
       prescription: this.state.prescription,
       description: this.state.description
     }
 
-    if (this.state.dicomFile === null) {
-      let fileName = 'mbh_' + this.state.patientEmail + '_' + Date.now() + '.json'
-      upload(data, fileName, (e, r) => {
+    if (this.state.dicomFile !== null) {
+      uploadFile(this.state.dicomFile, (e, r) => {
         if (e) {
-          alert('Failed to save data on IPFS: ' + e)
+          alert('Failed to save DICOM on IFPS: ' + e)
           this.setState({requested: false})
           return
         }
 
-        let dataHash = r
-        this.uploadHashToBlockchain(this.state.patientEmail, dataHash, (e, r) => {
+        content.dicomFileHash = r
+
+        this.uploadHashToBlockchain(this.state.patientEmail, content, (e, r) => {
           if (e) {
             alert('Error occurred: ' + e)
             this.setState({requested: false})
@@ -93,147 +92,69 @@ export class Main extends React.PureComponent {
         })
       })
     } else {
-      uploadFile(this.state.dicomFile, (e, r) => {
+      this.uploadHashToBlockchain(this.state.patientEmail, content, (e, r) => {
         if (e) {
-          alert('Failed to save DICOM on IFPS: ' + e)
+          alert('Error occurred: ' + e)
           this.setState({requested: false})
           return
         }
 
-        data.dicomFileHash = r
-        let fileName = 'mbh_' + this.state.patientEmail + '_' + Date.now() + '.json'
-        upload(data, fileName, (e, r) => {
-          if (e) {
-            alert('Failed to save data on IPFS: ' + e)
-            this.setState({requested: false})
-            return
-          }
-
-          let dataHash = r
-          this.uploadHashToBlockchain(this.state.patientEmail, dataHash, (e, r) => {
-            if (e) {
-              alert('Error occurred: ' + e)
-              this.setState({requested: false})
-              return
-            }
-
-            console.log('Data upload succeeded: ' + r)
-            this.setState({
-              patientEmail: '',
-              disease: '',
-              prescription: '',
-              description: '',
-              requested: false,
-              dicomFile: null
-            })
-          })
+        console.log('Data upload succeeded: ' + r)
+        this.setState({
+          patientEmail: '',
+          disease: '',
+          prescription: '',
+          description: '',
+          requested: false,
+          dicomFile: null
         })
       })
     }
   }
 
-  uploadHashToBlockchain(patientEmail, ipfsHash, next) {
+  uploadHashToBlockchain(patientEmail, content, next) {
     let web3 = this.props.web3
     web3.personal.unlockAccount(web3.eth.coinbase, "")
 
-    console.log('IPFS Hash got: ' + ipfsHash)
-
-    this.props.contracts.ctrMap.get(this.props.email, {from: web3.eth.coinbase}, (e, r) => {
+    this.props.contracts.ctrMap.get(patientEmail, {from: web3.eth.coinbase}, (e, r) => {
       if (e) {return next(e)}
 
       if (r === '0x0000000000000000000000000000000000000000') {
         return next(new Error('Cannot find a controller for the user account'))
       }
 
-      var controllerAddr = r
-      console.log('Controller: ' + controllerAddr)
+      var patientControllerAddr = r
+      console.log('Controller: ' + patientControllerAddr)
 
-      let controller = this.props.contracts.Controller.at(controllerAddr)
+      let patientController = this.props.contracts.Controller.at(patientControllerAddr)
+      let patientAccount = patientController.getProxy()
 
-      this.props.contracts.historyMap.get(patientEmail, (e, r) => {
-        if (e) {return next(e)}
-
-        let historyContract = this.props.contracts.History.at(r)
-
-        let historyUpdateData = historyContract.update.getData(ipfsHash)
-
-        let controllerForwardData = controller.forward.getData(historyContract.address,
-          0x00,
-          historyUpdateData)
-        let keyBuffer = new Buffer(this.props.priKey, 'hex')
-
-        let rawTx = {
-          data: controllerForwardData,
-          nonce: web3.toHex(web3.eth.getTransactionCount(this.props.account)),
-          to: controllerAddr.toString(),
-          from: this.props.account,
-          gasPrice: web3.toHex(web3.eth.gasPrice),
-          gasLimit: '0x47E7C4',
-          value: '0x00'
-        }
-
-        var tx = new etx(rawTx)
-        tx.sign(keyBuffer)
-
-        var serializedTx = tx.serialize()
-        var stx = '0x' + serializedTx.toString('hex')
-
-        console.log('Signed tx: ' + stx)
-        console.log('Type of stx: ' + typeof stx)
-
-        var gasEstimate = web3.toWei(0.2, 'ether')
-
-        web3.eth.sendTransaction({
-          from: web3.eth.coinbase,
-          to: this.props.account,
-          value: gasEstimate
-        }, (e, r) => {
-          if (e) {
-            console.log('Error while transfering gas fee to user: ' + e)
-            return next(e)
-          }
-
-          if (e) {
-            console.log('Error while transfering gas fee to controller: ' + e)
-            return next(e)
-          }
-
-          let controllerForwarded = controller.Forwarded({data: historyUpdateData})
-          controllerForwarded.watch((e, r) => {
-            if (e) {
-              console.log('********** [Controller] <<<Error>>> occurred in forwarding: ' + e)
-            } else {
-              console.log('********** [Controller] Fowarding result: ' + r)
-            }
-            controllerForwarded.stopWatching()
-          })
-
-          var ret = {}
-          controller.getProxy((e, r) => {
-            let proxy = this.props.contracts.ProxyContract.at(r)
-            let forwarded = proxy.Forwarded({data: historyUpdateData})
-            forwarded.watch((e, r) => {
-              if (e) {
-                console.log('********** [Proxy] <<<Error>>> occurred in forwarding: ' + e)
-                return next(e)
-              } else {
-                console.log('********** [Proxy] Fowarding result: ' + r)
-              }
-              forwarded.stopWatching()
-              return next(null, ret)
-            })
-
-            web3.eth.sendRawTransaction(stx, (e, r) => {
-              if (e) {
-                console.log('Error while processing update transaction: ' + e)
-                return next(e)
-              }
-              console.log('Transaction Hash: ', r)
-
-              ret.tx = r
-            })
-          })
+      fetch('http://localhost:3000/history', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patient: {
+            email: patientEmail,
+            account: patientAccount,
+          },
+          author: {
+            email: this.props.email,
+            account: this.props.account,
+            priKey: this.props.priKey
+          },
+          content
         })
+      })
+      .then((r) => r.json())
+      .then((o) => {
+        console.log(o)
+        return next(null, o)
+      })
+      .catch((error) => {
+        return next(error)
       })
     })
   }

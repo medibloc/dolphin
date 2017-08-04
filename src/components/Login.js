@@ -39,24 +39,32 @@ export class Login extends React.PureComponent {
       return (
         <div className='container'>
           <div className='col-md-6 col-md-offset-3'>
-            <h3 style={{marginBottom: '40px'}}>Login</h3>
-            <div className='form-group'>
-              <input type="text"
-                value={this.state.email}
-                onChange={(event) => this.setState({email: event.target.value})}
-                onKeyPress={(event) => {
-                  if (event.key === 'Enter' && !!this.state.textInput) {
-                    this.props.requestLogin(this.state.email)
-                  }
-                }}
-                className='form-control'
-                placeholder='Your Email Address' />
+            <div style={{
+              marginTop: '80px',
+              padding: '35px 50px 80px 50px',
+              borderRadius: 20,
+              border: '1px solid #e1e1e1',
+              boxShadow: '2px 2px 4px #888888',
+            }}>
+              <h3 style={{marginBottom: '30px'}}>Login</h3>
+              <div className='form-group'>
+                <input type="text"
+                  value={this.state.email}
+                  onChange={(event) => this.setState({email: event.target.value})}
+                  onKeyPress={(event) => {
+                    if (event.key === 'Enter' && !!this.state.textInput) {
+                      this.props.requestLogin(this.state.email)
+                    }
+                  }}
+                  className='form-control'
+                  placeholder='Your Email Address' />
+              </div>
+              <button className='btn btn-primary pull-right'
+                disabled={!this.state.email}
+                onClick={() => this.props.requestLogin(this.state.email)}>
+                Request Login
+              </button>
             </div>
-            <button className='btn btn-primary pull-right'
-              disabled={!this.state.email}
-              onClick={() => this.props.requestLogin(this.state.email)}>
-              Request Login
-            </button>
           </div>
         </div>
       )
